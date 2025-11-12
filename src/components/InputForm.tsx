@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { extractFlashcards } from '../services/llmService';
 import { fetchWikipediaContent } from '../services/wikipediaService';
 import { FlashcardSet } from '../types';
 import { getLLMConfig } from '../config';
 import { MockModeToggle } from './MockModeToggle';
+import { parseImportedJSON, parseImportedCSV } from '../services/importService';
 import '../styles/InputForm.css';
 
 interface InputFormProps {
@@ -16,6 +17,8 @@ const InputForm: React.FC<InputFormProps> = ({ setFlashcardSet, setLoading, setE
   const [isUrlInput, setIsUrlInput] = useState(true);
   const [input, setInput] = useState('');
   const [useMockMode, setUseMockMode] = useState(false);
+  const jsonInputRef = useRef<HTMLInputElement | null>(null);
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
   
   useEffect(() => {
     const savedSetting = localStorage.getItem('use_mock_mode');
@@ -94,6 +97,54 @@ const InputForm: React.FC<InputFormProps> = ({ setFlashcardSet, setLoading, setE
     }
   };
 
+  const handleImportJSON = (file: File) => {
+    setError(null);
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || '');
+        const set = parseImportedJSON(text, file.name);
+        setFlashcardSet(set);
+      } catch (e) {
+        setError('Invalid JSON format. Expected FlashcardSet or array of {question, answer}.');
+      } finally {
+        setLoading(false);
+        if (jsonInputRef.current) jsonInputRef.current.value = '';
+      }
+    };
+    reader.onerror = () => {
+      setError('Failed to read JSON file');
+      setLoading(false);
+      if (jsonInputRef.current) jsonInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImportCSV = (file: File) => {
+    setError(null);
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || '');
+        const set = parseImportedCSV(text, file.name);
+        setFlashcardSet(set);
+      } catch (e) {
+        setError('Invalid CSV. Expected headers: Question,Answer');
+      } finally {
+        setLoading(false);
+        if (csvInputRef.current) csvInputRef.current.value = '';
+      }
+    };
+    reader.onerror = () => {
+      setError('Failed to read CSV file');
+      setLoading(false);
+      if (csvInputRef.current) csvInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="input-form-container">
       <form onSubmit={handleSubmit}>
@@ -133,6 +184,43 @@ const InputForm: React.FC<InputFormProps> = ({ setFlashcardSet, setLoading, setE
 
         <MockModeToggle onChange={setUseMockMode} />
         
+        <div className="import-actions">
+          <button
+            type="button"
+            className="submit-button"
+            onClick={() => jsonInputRef.current?.click()}
+          >
+            Import JSON
+          </button>
+          <button
+            type="button"
+            className="submit-button"
+            onClick={() => csvInputRef.current?.click()}
+          >
+            Import CSV
+          </button>
+          <input
+            ref={jsonInputRef}
+            type="file"
+            accept=".json,application/json"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImportJSON(f);
+            }}
+          />
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImportCSV(f);
+            }}
+          />
+        </div>
+
         <button className="submit-button" type="submit">Generate Flashcards</button>
       </form>
     </div>

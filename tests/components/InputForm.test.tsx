@@ -5,6 +5,7 @@ import { extractFlashcards } from '../../src/services/llmService';
 import { fetchWikipediaContent } from '../../src/services/wikipediaService';
 import { getLLMConfig } from '../../src/config';
 import userEvent from '@testing-library/user-event';
+import { parseImportedJSON, parseImportedCSV } from '../../src/services/importService';
 
 jest.mock('../../src/services/llmService', () => ({
   extractFlashcards: jest.fn()
@@ -12,6 +13,11 @@ jest.mock('../../src/services/llmService', () => ({
 
 jest.mock('../../src/services/wikipediaService', () => ({
   fetchWikipediaContent: jest.fn()
+}));
+
+jest.mock('../../src/services/importService', () => ({
+  parseImportedJSON: jest.fn(),
+  parseImportedCSV: jest.fn(),
 }));
 
 jest.mock('../../src/config', () => ({
@@ -24,6 +30,8 @@ jest.mock('../../src/config', () => ({
 
 const mockExtractFlashcards = extractFlashcards as jest.MockedFunction<typeof extractFlashcards>;
 const mockFetchWikipediaContent = fetchWikipediaContent as jest.MockedFunction<typeof fetchWikipediaContent>;
+const mockParseImportedJSON = parseImportedJSON as jest.MockedFunction<typeof parseImportedJSON>;
+const mockParseImportedCSV = parseImportedCSV as jest.MockedFunction<typeof parseImportedCSV>;
 
 describe('InputForm Component', () => {
   const mockSetFlashcardSet = jest.fn();
